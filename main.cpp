@@ -22,21 +22,21 @@ int main() {
 	// Setup simulation
 	FluidSimulation sim;
 	sim.collisionDamping = 0.4f;
-	sim.numParticles = 4096;
+	sim.numParticles = 4032;
 	sim.smoothingRadius = 23;
 	sim.mouseRadius=80;
 	sim.mouseFlag=false;
 	sim.forceType=-1;
 
-	// sim.gravity = 8.f;
-	// sim.pressureMultiplier = 2700.f;
-	// sim.targetDensity = 0.007f;
-	sim.gravity=0.f;
-    sim.pressureMultiplier=1200.f;
-    sim.targetDensity=0.001f;
+	sim.gravity = 12.f;
+	sim.pressureMultiplier = 3500.f;
+	sim.targetDensity = 0.008f;
+	// sim.gravity=0.f;
+    // sim.pressureMultiplier=1200.f;
+    // sim.targetDensity=0.001f;
 
-	sim.particleSize = 3.1f;
-	sim.particleSpacing = 1.9f;
+	sim.particleSize = 3.f;
+	sim.particleSpacing = 1.2f;
 	sim.boundsSize = (Vector2){SCREEN_WIDTH, SCREEN_HEIGHT};
 	sim.Start();
 

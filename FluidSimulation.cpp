@@ -124,7 +124,7 @@ Vector2 FluidSimulation::calculateMouseForce(int particleIdx, Vector2 mousePos, 
 	float distance=Vector2Length(offset);
 	if (distance<mouseRadius) {
 		Vector2 directionToMouse=distance<=std::numeric_limits<float>::epsilon()?(Vector2){0,0}:Vector2Scale(offset,1/distance);
-		float distDependantStrength=1-distance/mouseRadius;
+		float distDependantStrength=distance/mouseRadius;
 		force=Vector2Add(force,Vector2Scale(Vector2Subtract(Vector2Scale(directionToMouse,strength),velocities[particleIdx]),distDependantStrength));
 	}
 	return force;
@@ -168,7 +168,7 @@ void FluidSimulation::SimulationStep(float deltaTime) {
 	PARALLEL_FOR_BEGIN(numParticles) {
 		Vector2 pressureForce=calculatePressureForce(i);
 		Vector2 acceleration=Vector2Scale(pressureForce,1.f/densities[i]);
-		velocities[i]=Vector2Add(velocities[i], Vector2Scale(calculateMouseForce(i,mousePosition,2*forceType),mouseFlag));
+		velocities[i]=Vector2Add(velocities[i], Vector2Scale(calculateMouseForce(i,mousePosition,1.2*forceType),mouseFlag));
 		velocities[i]=Vector2Add(velocities[i], Vector2Scale(acceleration,deltaTime));
 	}PARALLEL_FOR_END();
 
