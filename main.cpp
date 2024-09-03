@@ -5,6 +5,7 @@
 
 const int SCREEN_WIDTH=1280;
 const int SCREEN_HEIGHT=720;
+const int NUM_SIM_STEPS_PER_FRAME=3;
 bool simulationPaused=true;
 
 int main() {
@@ -22,18 +23,21 @@ int main() {
     FluidSimulation sim;
     sim.gravity=0.f;
     sim.collisionDamping=0.95f;
-    sim.numParticles=1600;
-    sim.smoothingRadius=80;
-    sim.pressureMultiplier=15.f;
-    sim.targetDensity=0.0004f;
-    sim.particleSize=2.5f;
+    sim.numParticles=3249;
+    sim.smoothingRadius=24;
+    sim.pressureMultiplier=1200.f;
+    sim.targetDensity=0.001f;
+    sim.particleSize=3.2f;
     sim.particleSpacing=2.5f;
     sim.boundsSize=(Vector2){SCREEN_WIDTH, SCREEN_HEIGHT};
     sim.Start();
 
     while (!WindowShouldClose()) {
      	if (IsKeyPressed(KEY_SPACE)) simulationPaused=!simulationPaused;
-     	if (!simulationPaused) sim.Update(GetFrameTime());
+     	if (!simulationPaused) {
+      		for (int i=0; i<NUM_SIM_STEPS_PER_FRAME; i++)
+      			sim.SimulationStep(GetFrameTime()/NUM_SIM_STEPS_PER_FRAME);
+      	}
     	rlSetCullFace(RL_CULL_FACE_FRONT);
         BeginDrawing();
         ClearBackground(BLACK);

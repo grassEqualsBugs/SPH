@@ -1,4 +1,6 @@
 #include "include/FluidSimulation.hpp"
+#include "include/parallel.hpp"
+#include "include/raylib.h"
 #include "include/raymath.h"
 
 void FluidSimulation::initParticlesRandomly() {
@@ -32,11 +34,11 @@ void FluidSimulation::Start() {
 	positions.resize(numParticles);
 	velocities.resize(numParticles);
 	densities.resize(numParticles);
+	predictedPositions.resize(numParticles);
 	spatialLookup.Resize(numParticles);
-	spatialLookup.UpdateSpatialLookup(positions, smoothingRadius);
 	mass=1.f;
-	// initParticlesInSquare();
-	initParticlesRandomly();
+	initParticlesInSquare();
+	// initParticlesRandomly();
 }
 
 float FluidSimulation::densityToPressure(float density) {
@@ -58,14 +60,15 @@ void FluidSimulation::resolveCollisions(Vector2& position, Vector2& velocity) {
 	}
 }
 
-float FluidSimulation::smoothingKernelDerivative(float distance) {
+float FluidSimulation::smoothingKernel(float distance) {
 	if (distance>=smoothingRadius) return 0;
-	return -30.f*pow(smoothingRadius-distance,2)/(PI*pow(smoothingRadius,5));
+	float volume=PI*pow(smoothingRadius,4)/6;
+	return (smoothingRadius-distance)*(smoothingRadius-distance)/volume;
 }
 
-float FluidSimulation::smoothingKernel(float distance) {
-	float volume=PI*pow(smoothingRadius,5)/10;
-	return pow(fmax(0, smoothingRadius-distance),3)/volume;
+float FluidSimulation::smoothingKernelDerivative(float distance) {
+	if (distance>=smoothingRadius) return 0;
+	return (distance-smoothingRadius)*12/(smoothingRadius*smoothingRadius*smoothingRadius*smoothingRadius*PI);
 }
 
 float FluidSimulation::calculateDensity(Vector2 sampleParticle) {
@@ -81,18 +84,28 @@ float FluidSimulation::calculateDensity(Vector2 sampleParticle) {
 	return density;
 }
 
-Vector2 FluidSimulation::calculatePressureForce(int sampleParticleIdx) {
+Vector2 getRandomDirection() {
+	int degrees=GetRandomValue(0, 359);
+	float radians=PI*degrees/180;
+	Vector2 result=(Vector2){
+		cos(radians),
+		sin(radians)
+	};
+	return result;
+}
+
+Vector2 FluidSimulation::calculatePressureForce(int particleIdx) {
 	Vector2 pressureForce=(Vector2){0, 0};
-	std::vector<int> particlesWithinRadius=spatialLookup.GetPointsWithinRadius(positions[sampleParticleIdx]);
-	for (int i:particlesWithinRadius) {
-		if (i==sampleParticleIdx) continue;
-		Vector2 difference=Vector2Subtract(positions[i],positions[sampleParticleIdx]);
+	std::vector<int> particlesWithinRadius=spatialLookup.GetPointsWithinRadius(predictedPositions[particleIdx]);
+	for (int otherParticleIdx : particlesWithinRadius) {
+		if (otherParticleIdx==particleIdx) continue;
+		Vector2 difference=Vector2Subtract(predictedPositions[otherParticleIdx],predictedPositions[particleIdx]);
 		float distance=Vector2Length(difference);
-		Vector2 direction=distance==0?(Vector2){1.0f, 0.0f}:Vector2Scale(difference,1.f/distance);
+		Vector2 direction=distance==0?getRandomDirection():Vector2Scale(difference,1.f/distance);
 		float influenceMagnitude=smoothingKernelDerivative(distance);
-		float density=densities[i];
+		float density=densities[otherParticleIdx];
 		float pressure=densityToPressure(density);
-		float otherPressure=densityToPressure(densities[sampleParticleIdx]);
+		float otherPressure=densityToPressure(densities[particleIdx]);
 		float sharedPressure=(pressure+otherPressure)/2;
 		float scalar=sharedPressure*influenceMagnitude*mass/density;
 		pressureForce=Vector2Add(pressureForce, Vector2Scale(direction,scalar));
@@ -118,17 +131,25 @@ int FluidSimulation::findClosestParticle() {
 	return j;
 }
 
-void FluidSimulation::Update(float deltaTime) {
-	spatialLookup.UpdateSpatialLookup(positions, smoothingRadius);
+void FluidSimulation::SimulationStep(float deltaTime) {
 	PARALLEL_FOR_BEGIN(numParticles) {
 		velocities[i].y-=gravity*deltaTime;
-		densities[i]=calculateDensity(positions[i]);
+		predictedPositions[i]=Vector2Add(positions[i],Vector2Scale(velocities[i],0.75f));
 	}PARALLEL_FOR_END();
+
+	spatialLookup.UpdateSpatialLookup(predictedPositions, smoothingRadius);
+
+	PARALLEL_FOR_BEGIN(numParticles) {
+		densities[i]=calculateDensity(predictedPositions[i]);
+	}PARALLEL_FOR_END();
+
+	// std::cout<<*min_element(densities.begin(),densities.end())<<"\n";
 
 	PARALLEL_FOR_BEGIN(numParticles) {
 		Vector2 pressureForce=calculatePressureForce(i);
 		Vector2 acceleration=Vector2Scale(pressureForce,1.f/densities[i]);
 		velocities[i]=Vector2Add(velocities[i], Vector2Scale(acceleration,deltaTime));
+		// velocities[i]=Vector2Scale(acceleration,deltaTime);
 	}PARALLEL_FOR_END();
 
 	PARALLEL_FOR_BEGIN(numParticles) {

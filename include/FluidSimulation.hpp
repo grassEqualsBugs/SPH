@@ -16,6 +16,7 @@ class FluidSimulation {
 
 		void resolveCollisions(Vector2& position, Vector2& velocity);
 		std::vector<Vector2> positions;
+		std::vector<Vector2> predictedPositions;
 		std::vector<Vector2> velocities;
 		std::vector<float> densities;
 		float mass;
@@ -39,6 +40,6 @@ class FluidSimulation {
 		unsigned int numParticles;
 		Vector2 boundsSize;
 		void Start();
-		void Update(float deltaTime);
+		void SimulationStep(float deltaTime);
 		void Render();
 };
