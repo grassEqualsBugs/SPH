@@ -1,7 +1,6 @@
 #include "include/FluidSimulation.hpp"
 #include "include/parallel.hpp"
 #include "include/raylib.h"
-#include "include/raymath.h"
 
 void FluidSimulation::initParticlesRandomly() {
 	Vector2 halfBoundsSize=Vector2SubtractValue(
@@ -31,14 +30,15 @@ void FluidSimulation::initParticlesInSquare() {
 }
 
 void FluidSimulation::Start() {
-	positions.resize(numParticles);
-	velocities.resize(numParticles);
-	densities.resize(numParticles);
-	predictedPositions.resize(numParticles);
+	positions.clear(); positions.resize(numParticles);
+	velocities.clear(); velocities.resize(numParticles);
+	densities.clear(); densities.resize(numParticles);
+	predictedPositions.clear(); predictedPositions.resize(numParticles);
 	spatialLookup.Resize(numParticles);
 	mass=1.f;
 	initParticlesInSquare();
 	// initParticlesRandomly();
+	spatialLookup.UpdateSpatialLookup(positions, smoothingRadius);
 }
 
 float FluidSimulation::densityToPressure(float density) {
@@ -113,6 +113,18 @@ Vector2 FluidSimulation::calculatePressureForce(int particleIdx) {
 	return pressureForce;
 }
 
+Vector2 FluidSimulation::calculateMouseForce(int particleIdx, Vector2 mousePos, float strength) {
+	Vector2 force=(Vector2){0,0};
+	Vector2 offset=Vector2Subtract(mousePos, positions[particleIdx]);
+	float distance=Vector2Length(offset);
+	if (distance<mouseRadius) {
+		Vector2 directionToMouse=distance<=std::numeric_limits<float>::epsilon()?(Vector2){0,0}:Vector2Scale(offset,1/distance);
+		float distDependantStrength=1-distance/mouseRadius;
+		force=Vector2Add(force,Vector2Scale(Vector2Subtract(Vector2Scale(directionToMouse,strength),velocities[particleIdx]),distDependantStrength));
+	}
+	return force;
+}
+
 int FluidSimulation::findClosestParticle() {
 	int j=0;
 	float bestDst=100000;
@@ -143,13 +155,15 @@ void FluidSimulation::SimulationStep(float deltaTime) {
 		densities[i]=calculateDensity(predictedPositions[i]);
 	}PARALLEL_FOR_END();
 
-	// std::cout<<*min_element(densities.begin(),densities.end())<<"\n";
-
+	Vector2 mousePosition=Vector2Subtract(
+		GetMousePosition(),
+		Vector2Scale(boundsSize, 0.5f)
+	);
+	mousePosition.y=-mousePosition.y;
 	PARALLEL_FOR_BEGIN(numParticles) {
 		Vector2 pressureForce=calculatePressureForce(i);
 		Vector2 acceleration=Vector2Scale(pressureForce,1.f/densities[i]);
 		velocities[i]=Vector2Add(velocities[i], Vector2Scale(acceleration,deltaTime));
-		// velocities[i]=Vector2Scale(acceleration,deltaTime);
 	}PARALLEL_FOR_END();
 
 	PARALLEL_FOR_BEGIN(numParticles) {

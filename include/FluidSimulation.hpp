@@ -8,6 +8,7 @@
 #include <climits>
 #include <vector>
 #include <iostream>
+#include <limits>
 
 class FluidSimulation {
 	private:
@@ -29,17 +30,20 @@ class FluidSimulation {
 		Vector2 calculatePressureForce(int sampleParticleIdx);
 
 		int findClosestParticle();
+		Vector2 calculateMouseForce(int particleIdx, Vector2 mousePos, float strength);
 	public:
 		float targetDensity;
 		float pressureMultiplier;
 		float gravity;
 		float collisionDamping;
+		float mouseRadius;
 		float particleSize;
 		float particleSpacing;
 		float smoothingRadius;
 		unsigned int numParticles;
 		Vector2 boundsSize;
 		void Start();
+		void Reset();
 		void SimulationStep(float deltaTime);
 		void Render();
 };
