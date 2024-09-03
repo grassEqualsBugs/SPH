@@ -114,6 +114,10 @@ Vector2 FluidSimulation::calculatePressureForce(int particleIdx) {
 	return pressureForce;
 }
 
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
 Vector2 FluidSimulation::calculateMouseForce(int particleIdx, Vector2 mousePos, float strength) {
 	Vector2 force=(Vector2){0,0};
 	Vector2 offset=Vector2Subtract(mousePos, positions[particleIdx]);
@@ -164,6 +168,7 @@ void FluidSimulation::SimulationStep(float deltaTime) {
 	PARALLEL_FOR_BEGIN(numParticles) {
 		Vector2 pressureForce=calculatePressureForce(i);
 		Vector2 acceleration=Vector2Scale(pressureForce,1.f/densities[i]);
+		velocities[i]=Vector2Add(velocities[i], Vector2Scale(calculateMouseForce(i,mousePosition,2*forceType),mouseFlag));
 		velocities[i]=Vector2Add(velocities[i], Vector2Scale(acceleration,deltaTime));
 	}PARALLEL_FOR_END();
 
@@ -178,7 +183,7 @@ void FluidSimulation::Render() {
 	Vector3 c2=(Vector3){0,255,0};
 	for (int i=0; i<numParticles; i++) {
 		float speed=Vector2Length(velocities[i]);
-		speed/=9;
+		speed/=8;
 		Vector3 c=Vector3Lerp(c1, c2, speed);
 		DrawCircleV(positions[i], particleSize, (Color){
 			(unsigned char)((int)c.x),

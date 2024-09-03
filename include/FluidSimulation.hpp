@@ -35,6 +35,8 @@ class FluidSimulation {
 		float targetDensity;
 		float pressureMultiplier;
 		float gravity;
+		int forceType;
+		bool mouseFlag;
 		float collisionDamping;
 		float mouseRadius;
 		float particleSize;
