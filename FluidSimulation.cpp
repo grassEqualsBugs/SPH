@@ -1,6 +1,7 @@
 #include "include/FluidSimulation.hpp"
 #include "include/parallel.hpp"
 #include "include/raylib.h"
+#include "include/raymath.h"
 
 void FluidSimulation::initParticlesRandomly() {
 	Vector2 halfBoundsSize=Vector2SubtractValue(
@@ -173,9 +174,17 @@ void FluidSimulation::SimulationStep(float deltaTime) {
 }
 
 void FluidSimulation::Render() {
+	Vector3 c1=(Vector3){0,0,255};
+	Vector3 c2=(Vector3){0,255,0};
 	for (int i=0; i<numParticles; i++) {
+		float speed=Vector2Length(velocities[i]);
+		speed/=9;
+		Vector3 c=Vector3Lerp(c1, c2, speed);
 		DrawCircleV(positions[i], particleSize, (Color){
-			63, 120, 244, 255
+			(unsigned char)((int)c.x),
+			(unsigned char)((int)c.y),
+			(unsigned char)((int)c.z),
+			255
 		});
 	}
 }
