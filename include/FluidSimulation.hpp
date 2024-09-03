@@ -2,21 +2,12 @@
 #include "raylib.h"
 #include "raymath.h"
 #include "parallel.hpp"
+#include "SpatialLookup.hpp"
 
 #include <algorithm>
 #include <climits>
 #include <vector>
 #include <iostream>
-
-typedef struct SpatialLookupEntry {
-	int particleIndex;
-	unsigned int cellKey;
-} SpatialLookupEntry;
-
-typedef struct CellCoord {
-	int x;
-	int y;
-} CellCoord;
 
 class FluidSimulation {
 	private:
@@ -27,9 +18,8 @@ class FluidSimulation {
 		std::vector<Vector2> positions;
 		std::vector<Vector2> velocities;
 		std::vector<float> densities;
-		std::vector<SpatialLookupEntry> spatialLookup;
-		std::vector<int> startIndices;
 		float mass;
+		SpatialLookup spatialLookup;
 
 		float smoothingKernel(float distance);
 		float smoothingKernelDerivative(float distance);
@@ -38,12 +28,6 @@ class FluidSimulation {
 		Vector2 calculatePressureForce(int sampleParticleIdx);
 
 		int findClosestParticle();
-
-		CellCoord positionToCellCoord(Vector2 position);
-		unsigned int hashCell(CellCoord cell);
-		unsigned int getKeyFromHash(unsigned int hash);
-		void updateSpatialLookup();
-		std::vector<int> getPointsWithinRadius(Vector2 point);
 	public:
 		float targetDensity;
 		float pressureMultiplier;

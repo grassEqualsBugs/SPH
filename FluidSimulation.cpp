@@ -32,11 +32,11 @@ void FluidSimulation::Start() {
 	positions.resize(numParticles);
 	velocities.resize(numParticles);
 	densities.resize(numParticles);
-	spatialLookup.resize(numParticles);
-	startIndices.resize(numParticles);
+	spatialLookup.Resize(numParticles);
+	spatialLookup.UpdateSpatialLookup(positions, smoothingRadius);
 	mass=1.f;
-	initParticlesInSquare();
-	// initParticlesRandomly();
+	// initParticlesInSquare();
+	initParticlesRandomly();
 }
 
 float FluidSimulation::densityToPressure(float density) {
@@ -71,7 +71,7 @@ float FluidSimulation::smoothingKernel(float distance) {
 float FluidSimulation::calculateDensity(Vector2 sampleParticle) {
 	float density=0.f;
 
-	std::vector<int> particlesWithinRadius=getPointsWithinRadius(sampleParticle);
+	std::vector<int> particlesWithinRadius=spatialLookup.GetPointsWithinRadius(sampleParticle);
 	for (int i : particlesWithinRadius) {
 		float distance=Vector2Distance(sampleParticle, positions[i]);
 		float influence=smoothingKernel(distance);
@@ -83,7 +83,7 @@ float FluidSimulation::calculateDensity(Vector2 sampleParticle) {
 
 Vector2 FluidSimulation::calculatePressureForce(int sampleParticleIdx) {
 	Vector2 pressureForce=(Vector2){0, 0};
-	std::vector<int> particlesWithinRadius=getPointsWithinRadius(positions[sampleParticleIdx]);
+	std::vector<int> particlesWithinRadius=spatialLookup.GetPointsWithinRadius(positions[sampleParticleIdx]);
 	for (int i:particlesWithinRadius) {
 		if (i==sampleParticleIdx) continue;
 		Vector2 difference=Vector2Subtract(positions[i],positions[sampleParticleIdx]);
@@ -118,46 +118,8 @@ int FluidSimulation::findClosestParticle() {
 	return j;
 }
 
-CellCoord FluidSimulation::positionToCellCoord(Vector2 position) {
-	return (CellCoord){
-		(int)(position.x/smoothingRadius),
-		(int)(position.y/smoothingRadius)
-	};
-}
-
-unsigned int FluidSimulation::hashCell(CellCoord cell) {
-	unsigned int a = (unsigned int)cell.x*15823;
-	unsigned int b = (unsigned int)cell.y*9737333;
-	return a+b;
-}
-
-unsigned int FluidSimulation::getKeyFromHash(unsigned int hash) {
-	return hash%(unsigned int)(spatialLookup.size());
-}
-
-bool compareByCellKey(const SpatialLookupEntry& a, const SpatialLookupEntry& b) {
-	return a.cellKey < b.cellKey;
-}
-
-void FluidSimulation::updateSpatialLookup() {
-	PARALLEL_FOR_BEGIN(numParticles) {
-		spatialLookup[i]=(SpatialLookupEntry){
-			i, getKeyFromHash(hashCell(positionToCellCoord(positions[i])))
-		};
-		startIndices[i]=INT_MAX;
-	}PARALLEL_FOR_END();
-	std::sort(spatialLookup.begin(), spatialLookup.end(), compareByCellKey);
-	PARALLEL_FOR_BEGIN(numParticles) {
-		unsigned int key=spatialLookup[i].cellKey;
-		unsigned int keyPrev=i==0?2*INT_MAX:spatialLookup[i-1].cellKey;
-		if (key!=keyPrev) {
-			startIndices[key]=i;
-		}
-	}PARALLEL_FOR_END();
-}
-
 void FluidSimulation::Update(float deltaTime) {
-	updateSpatialLookup();
+	spatialLookup.UpdateSpatialLookup(positions, smoothingRadius);
 	PARALLEL_FOR_BEGIN(numParticles) {
 		velocities[i].y-=gravity*deltaTime;
 		densities[i]=calculateDensity(positions[i]);
@@ -173,39 +135,6 @@ void FluidSimulation::Update(float deltaTime) {
 		positions[i] = Vector2Add(positions[i], velocities[i]);
 		resolveCollisions(positions[i], velocities[i]);
 	}PARALLEL_FOR_END();
-}
-
-std::vector<int> FluidSimulation::getPointsWithinRadius(Vector2 point) {
-	std::vector<CellCoord> cellOffsets = {
-		(CellCoord){-1,-1},
-		(CellCoord){-1,0},
-		(CellCoord){-1,1},
-		(CellCoord){0,-1},
-		(CellCoord){0,0},
-		(CellCoord){0,1},
-		(CellCoord){1,-1},
-		(CellCoord){1,0},
-		(CellCoord){1,1},
-	};
-
-	CellCoord coord=positionToCellCoord(point);
-	float sqrSmoothingRadius=smoothingRadius*smoothingRadius;
-	std::vector<int> points;
-
-	for (CellCoord offset : cellOffsets) {
-		unsigned int key=getKeyFromHash(hashCell((CellCoord){
-			offset.x+coord.x,
-			offset.y+coord.y
-		}));
-		for (int i=startIndices[key]; i<spatialLookup.size(); i++) {
-			if (spatialLookup[i].cellKey!=key) break;
-			int particleIdx=spatialLookup[i].particleIndex;
-			float sqrDist=Vector2DistanceSqr(positions[particleIdx],point);
-			if (sqrDist<sqrSmoothingRadius)
-				points.push_back(particleIdx);
-		}
-	}
-	return points;
 }
 
 void FluidSimulation::Render() {

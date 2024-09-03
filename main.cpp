@@ -22,17 +22,16 @@ int main() {
     FluidSimulation sim;
     sim.gravity=0.f;
     sim.collisionDamping=0.95f;
-    sim.numParticles=3025;
+    sim.numParticles=1600;
     sim.smoothingRadius=80;
-    sim.pressureMultiplier=800.f;
+    sim.pressureMultiplier=15.f;
     sim.targetDensity=0.0004f;
     sim.particleSize=2.5f;
-    sim.particleSpacing=4.9f;
+    sim.particleSpacing=2.5f;
     sim.boundsSize=(Vector2){SCREEN_WIDTH, SCREEN_HEIGHT};
     sim.Start();
 
     while (!WindowShouldClose()) {
-    	std::cout<<"FPS: "<<GetFPS()<<"\n";
      	if (IsKeyPressed(KEY_SPACE)) simulationPaused=!simulationPaused;
      	if (!simulationPaused) sim.Update(GetFrameTime());
     	rlSetCullFace(RL_CULL_FACE_FRONT);
