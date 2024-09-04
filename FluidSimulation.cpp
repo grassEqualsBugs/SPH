@@ -1,6 +1,4 @@
 #include "include/FluidSimulation.hpp"
-#include "include/parallel.hpp"
-#include "include/raylib.h"
 #include "include/raymath.h"
 
 void FluidSimulation::initParticlesRandomly() {
@@ -67,6 +65,13 @@ float FluidSimulation::smoothingKernel(float distance) {
 	return (smoothingRadius-distance)*(smoothingRadius-distance)/volume;
 }
 
+float FluidSimulation::viscositySmoothingKernel(float distance) {
+	if (distance>=smoothingRadius) return 0;
+	float volume=4 / (PI * pow(smoothingRadius, 8));
+	float v=smoothingRadius*smoothingRadius-distance*distance;
+	return v*v*volume;
+}
+
 float FluidSimulation::smoothingKernelDerivative(float distance) {
 	if (distance>=smoothingRadius) return 0;
 	return (distance-smoothingRadius)*12/(smoothingRadius*smoothingRadius*smoothingRadius*smoothingRadius*PI);
@@ -130,6 +135,18 @@ Vector2 FluidSimulation::calculateMouseForce(int particleIdx, Vector2 mousePos, 
 	return force;
 }
 
+Vector2 FluidSimulation::calculateViscosityForce(int particleIdx) {
+	Vector2 force=(Vector2){0,0};
+	Vector2 position=positions[particleIdx];
+	std::vector<int> particlesWithinRadius=spatialLookup.GetPointsWithinRadius(predictedPositions[particleIdx]);
+	for (int otherParticleIdx : particlesWithinRadius) {
+		float dist=Vector2Distance(positions[otherParticleIdx],position);
+		float influence=viscositySmoothingKernel(dist);
+		force=Vector2Add(force,Vector2Scale(Vector2Subtract(velocities[otherParticleIdx], velocities[particleIdx]),influence));
+	}
+	return Vector2Scale(force,viscosityStrength);
+}
+
 int FluidSimulation::findClosestParticle() {
 	int j=0;
 	float bestDst=100000;
@@ -151,7 +168,7 @@ int FluidSimulation::findClosestParticle() {
 void FluidSimulation::SimulationStep(float deltaTime) {
 	PARALLEL_FOR_BEGIN(numParticles) {
 		velocities[i].y-=gravity*deltaTime;
-		predictedPositions[i]=Vector2Add(positions[i],Vector2Scale(velocities[i],0.75f));
+		predictedPositions[i]=Vector2Add(positions[i],Vector2Scale(velocities[i],0.5f));
 	}PARALLEL_FOR_END();
 
 	spatialLookup.UpdateSpatialLookup(predictedPositions, smoothingRadius);
@@ -168,8 +185,9 @@ void FluidSimulation::SimulationStep(float deltaTime) {
 	PARALLEL_FOR_BEGIN(numParticles) {
 		Vector2 pressureForce=calculatePressureForce(i);
 		Vector2 acceleration=Vector2Scale(pressureForce,1.f/densities[i]);
-		velocities[i]=Vector2Add(velocities[i], Vector2Scale(calculateMouseForce(i,mousePosition,1.2*forceType),mouseFlag));
+		velocities[i]=Vector2Add(velocities[i], Vector2Scale(calculateMouseForce(i,mousePosition,50*forceType),mouseFlag*deltaTime));
 		velocities[i]=Vector2Add(velocities[i], Vector2Scale(acceleration,deltaTime));
+		velocities[i]=Vector2Add(velocities[i], Vector2Scale(calculateViscosityForce(i),deltaTime));
 	}PARALLEL_FOR_END();
 
 	PARALLEL_FOR_BEGIN(numParticles) {
@@ -179,17 +197,6 @@ void FluidSimulation::SimulationStep(float deltaTime) {
 }
 
 void FluidSimulation::Render() {
-	Vector3 c1=(Vector3){0,0,255};
-	Vector3 c2=(Vector3){0,255,0};
-	for (int i=0; i<numParticles; i++) {
-		float speed=Vector2Length(velocities[i]);
-		speed/=8;
-		Vector3 c=Vector3Lerp(c1, c2, speed);
-		DrawCircleV(positions[i], particleSize, (Color){
-			(unsigned char)((int)c.x),
-			(unsigned char)((int)c.y),
-			(unsigned char)((int)c.z),
-			255
-		});
-	}
+	for (int i=0; i<numParticles; i++)
+		DrawCircleV(positions[i], particleSize, (Color){0, 0, 255, 255});
 }

@@ -3,9 +3,9 @@
 #include "include/rlgl.h"
 #include <iostream>
 
-const int SCREEN_WIDTH = 1280;
-const int SCREEN_HEIGHT = 720;
-const int NUM_SIM_STEPS_PER_FRAME = 3;
+const int SCREEN_WIDTH = 1470;
+const int SCREEN_HEIGHT = 890;
+const int NUM_SIM_STEPS_PER_FRAME = 4;
 bool simulationPaused = true;
 
 int main() {
@@ -17,26 +17,28 @@ int main() {
 	// Setup camera
 	Camera2D camera = {0};
 	camera.offset = (Vector2){SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f};
-	camera.zoom = 1.1f;
+	camera.zoom = 1.f;
 
 	// Setup simulation
 	FluidSimulation sim;
-	sim.collisionDamping = 0.4f;
-	sim.numParticles = 4032;
-	sim.smoothingRadius = 23;
-	sim.mouseRadius=80;
+	sim.collisionDamping = 0.8f;
+	sim.numParticles = 3600;
+	sim.mouseRadius=180;
 	sim.mouseFlag=false;
-	sim.forceType=-1;
+	sim.forceType=1;
+	sim.viscosityStrength=1000.f;
 
-	sim.gravity = 12.f;
-	sim.pressureMultiplier = 3500.f;
-	sim.targetDensity = 0.008f;
+	sim.gravity = 10.f;
+	sim.pressureMultiplier = 6000.f;
+	sim.targetDensity = 0.f;
+	sim.smoothingRadius = 18;
 	// sim.gravity=0.f;
-    // sim.pressureMultiplier=1200.f;
-    // sim.targetDensity=0.001f;
+    // sim.pressureMultiplier=1000.f;
+    // sim.targetDensity=0.f;
+    // sim.smoothingRadius = 24;
 
-	sim.particleSize = 3.f;
-	sim.particleSpacing = 1.2f;
+	sim.particleSize = 2.8f;
+	sim.particleSpacing = 0.9f;
 	sim.boundsSize = (Vector2){SCREEN_WIDTH, SCREEN_HEIGHT};
 	sim.Start();
 
@@ -49,7 +51,7 @@ int main() {
 		if (IsKeyPressed(KEY_M))
 			sim.forceType=-sim.forceType;
 		sim.mouseFlag=0;
-		if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+		if (IsKeyDown(KEY_N))
 			sim.mouseFlag=1;
 		if (!simulationPaused||(simulationPaused&&IsKeyPressed(KEY_RIGHT))) {
 			for (int i = 0; i < NUM_SIM_STEPS_PER_FRAME; i++)

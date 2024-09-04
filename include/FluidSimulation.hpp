@@ -3,6 +3,7 @@
 #include "raymath.h"
 #include "parallel.hpp"
 #include "SpatialLookup.hpp"
+#include "hsvrgb.hpp"
 
 #include <algorithm>
 #include <climits>
@@ -25,9 +26,12 @@ class FluidSimulation {
 
 		float smoothingKernel(float distance);
 		float smoothingKernelDerivative(float distance);
+		float viscositySmoothingKernel(float distance);
+
 		float calculateDensity(Vector2 particle);
 		float densityToPressure(float density);
 		Vector2 calculatePressureForce(int sampleParticleIdx);
+		Vector2 calculateViscosityForce(int particleIdx);
 
 		int findClosestParticle();
 		Vector2 calculateMouseForce(int particleIdx, Vector2 mousePos, float strength);
@@ -39,11 +43,13 @@ class FluidSimulation {
 		bool mouseFlag;
 		float collisionDamping;
 		float mouseRadius;
+		float viscosityStrength;
 		float particleSize;
 		float particleSpacing;
 		float smoothingRadius;
 		unsigned int numParticles;
 		Vector2 boundsSize;
+
 		void Start();
 		void Reset();
 		void SimulationStep(float deltaTime);
