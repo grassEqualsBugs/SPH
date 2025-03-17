@@ -5,6 +5,9 @@ Made with C++ and Raylib.
 
 ## Controls
 Pause/play -> Space
+
 Restart -> R
+
 Invert mouse force -> M
+
 Use mouse force -> N
