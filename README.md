@@ -4,10 +4,12 @@ Based on Sebastian Lague's [Coding Adventure](https://youtu.be/rSKMYc1CQHE?si=KN
 Made with C++ and Raylib.
 
 ## Controls
-Pause/play -> Space
+Pause/play → Space
 
-Restart -> R
+Restart → R
 
-Invert mouse force -> M
+Invert mouse force → M
 
-Use mouse force -> N
+Use mouse force → N
+
+Right arrow key → Step simulation (while paused)
