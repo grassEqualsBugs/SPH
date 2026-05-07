@@ -185,7 +185,7 @@ void FluidSimulation::SimulationStep(float deltaTime) {
 	PARALLEL_FOR_BEGIN(numParticles) {
 		Vector2 pressureForce=calculatePressureForce(i);
 		Vector2 acceleration=Vector2Scale(pressureForce,1.f/densities[i]);
-		velocities[i]=Vector2Add(velocities[i], Vector2Scale(calculateMouseForce(i,mousePosition,50*forceType),mouseFlag*deltaTime));
+		velocities[i]=Vector2Add(velocities[i], Vector2Scale(calculateMouseForce(i,mousePosition,80*forceType),mouseFlag*deltaTime));
 		velocities[i]=Vector2Add(velocities[i], Vector2Scale(acceleration,deltaTime));
 		velocities[i]=Vector2Add(velocities[i], Vector2Scale(calculateViscosityForce(i),deltaTime));
 	}PARALLEL_FOR_END();
@@ -198,5 +198,5 @@ void FluidSimulation::SimulationStep(float deltaTime) {
 
 void FluidSimulation::Render() {
 	for (int i=0; i<numParticles; i++)
-		DrawCircleV(positions[i], particleSize, (Color){0, 0, 255, 255});
+		DrawCircleV(positions[i], particleSize, (Color){72, 126, 219, 255});
 }

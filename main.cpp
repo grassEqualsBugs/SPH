@@ -29,15 +29,15 @@ int main() {
 	sim.viscosityStrength=1000.f;
 
 	sim.gravity = 10.f;
-	sim.pressureMultiplier = 6000.f;
+	sim.pressureMultiplier = 7000.f;
 	sim.targetDensity = 0.f;
 	sim.smoothingRadius = 18;
 	// sim.gravity=0.f;
-    // sim.pressureMultiplier=1000.f;
-    // sim.targetDensity=0.f;
-    // sim.smoothingRadius = 24;
+ //  sim.pressureMultiplier=1000.f;
+ //  sim.targetDensity=0.f;
+ //  sim.smoothingRadius = 24;
 
-	sim.particleSize = 2.8f;
+	sim.particleSize = 3.8f;
 	sim.particleSpacing = 0.9f;
 	sim.boundsSize = (Vector2){SCREEN_WIDTH, SCREEN_HEIGHT};
 	sim.Start();
