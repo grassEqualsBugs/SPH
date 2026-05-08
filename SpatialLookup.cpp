@@ -23,17 +23,17 @@ bool compareByCellKey(const SpatialLookupEntry& a, const SpatialLookupEntry& b) 
 	return a.cellKey < b.cellKey;
 }
 
-void SpatialLookup::UpdateSpatialLookup(std::vector<Vector2> newPoints, float newRadius) {
-	points=newPoints;
+void SpatialLookup::UpdateSpatialLookup(const std::vector<Vector2>& newPoints, float newRadius) {
+	points=&newPoints;
 	radius=newRadius;
-	PARALLEL_FOR_BEGIN(points.size()) {
+	PARALLEL_FOR_BEGIN(points->size()) {
 		spatialLookup[i]=(SpatialLookupEntry){
-			i, getKeyFromHash(hashCell(positionToCellCoord(points[i])))
+			i, getKeyFromHash(hashCell(positionToCellCoord((*points)[i])))
 		};
 		startIndices[i]=INT_MAX;
 	}PARALLEL_FOR_END();
 	std::sort(spatialLookup.begin(), spatialLookup.end(), compareByCellKey);
-	PARALLEL_FOR_BEGIN(points.size()) {
+	PARALLEL_FOR_BEGIN(points->size()) {
 		unsigned int key=spatialLookup[i].cellKey;
 		unsigned int keyPrev=i==0?2*INT_MAX:spatialLookup[i-1].cellKey;
 		if (key!=keyPrev) {
@@ -42,25 +42,28 @@ void SpatialLookup::UpdateSpatialLookup(std::vector<Vector2> newPoints, float ne
 	}PARALLEL_FOR_END();
 }
 
-std::vector<int> SpatialLookup::GetPointsWithinRadius(Vector2 point) {
-	CellCoord coord=positionToCellCoord(point);
-	float sqrSmoothingRadius=radius*radius;
-	std::vector<int> pointsWithinRadius;
+void SpatialLookup::ForEachPointWithinRadius(Vector2 point, const std::function<void(int)>& callback) {
+	CellCoord coord = positionToCellCoord(point);
+	float sqrSmoothingRadius = radius * radius;
 
 	for (CellCoord offset : cellOffsets) {
-		unsigned int key=getKeyFromHash(hashCell((CellCoord){
-			offset.x+coord.x,
-			offset.y+coord.y
+		unsigned int key = getKeyFromHash(hashCell((CellCoord){
+			offset.x + coord.x,
+			offset.y + coord.y
 		}));
-		for (int i=startIndices[key]; i<spatialLookup.size(); i++) {
-			if (spatialLookup[i].cellKey!=key) break;
-			int particleIdx=spatialLookup[i].particleIndex;
-			float sqrDist=Vector2DistanceSqr(points[particleIdx],point);
-			if (sqrDist<sqrSmoothingRadius)
-				pointsWithinRadius.push_back(particleIdx);
+		
+		int startIndex = startIndices[key];
+		if (startIndex == (int)INT_MAX) continue;
+
+		for (int i = startIndex; i < (int)spatialLookup.size(); i++) {
+			if (spatialLookup[i].cellKey != key) break;
+			int particleIdx = spatialLookup[i].particleIndex;
+			float sqrDist = Vector2DistanceSqr((*points)[particleIdx], point);
+			if (sqrDist < sqrSmoothingRadius) {
+				callback(particleIdx);
+			}
 		}
 	}
-	return pointsWithinRadius;
 }
 
 CellCoord SpatialLookup::positionToCellCoord(Vector2 position) {

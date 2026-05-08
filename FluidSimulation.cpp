@@ -80,12 +80,11 @@ float FluidSimulation::smoothingKernelDerivative(float distance) {
 float FluidSimulation::calculateDensity(Vector2 sampleParticle) {
 	float density=0.f;
 
-	std::vector<int> particlesWithinRadius=spatialLookup.GetPointsWithinRadius(sampleParticle);
-	for (int i : particlesWithinRadius) {
+	spatialLookup.ForEachPointWithinRadius(sampleParticle, [&](int i) {
 		float distance=Vector2Distance(sampleParticle, positions[i]);
 		float influence=smoothingKernel(distance);
 		density+=influence*mass;
-	}
+	});
 
 	return density;
 }
@@ -102,9 +101,8 @@ Vector2 getRandomDirection() {
 
 Vector2 FluidSimulation::calculatePressureForce(int particleIdx) {
 	Vector2 pressureForce=(Vector2){0, 0};
-	std::vector<int> particlesWithinRadius=spatialLookup.GetPointsWithinRadius(predictedPositions[particleIdx]);
-	for (int otherParticleIdx : particlesWithinRadius) {
-		if (otherParticleIdx==particleIdx) continue;
+	spatialLookup.ForEachPointWithinRadius(predictedPositions[particleIdx], [&](int otherParticleIdx) {
+		if (otherParticleIdx==particleIdx) return;
 		Vector2 difference=Vector2Subtract(predictedPositions[otherParticleIdx],predictedPositions[particleIdx]);
 		float distance=Vector2Length(difference);
 		Vector2 direction=distance==0?getRandomDirection():Vector2Scale(difference,1.f/distance);
@@ -115,7 +113,7 @@ Vector2 FluidSimulation::calculatePressureForce(int particleIdx) {
 		float sharedPressure=(pressure+otherPressure)/2;
 		float scalar=sharedPressure*influenceMagnitude*mass/density;
 		pressureForce=Vector2Add(pressureForce, Vector2Scale(direction,scalar));
-	}
+	});
 	return pressureForce;
 }
 
@@ -138,12 +136,11 @@ Vector2 FluidSimulation::calculateMouseForce(int particleIdx, Vector2 mousePos, 
 Vector2 FluidSimulation::calculateViscosityForce(int particleIdx) {
 	Vector2 force=(Vector2){0,0};
 	Vector2 position=positions[particleIdx];
-	std::vector<int> particlesWithinRadius=spatialLookup.GetPointsWithinRadius(predictedPositions[particleIdx]);
-	for (int otherParticleIdx : particlesWithinRadius) {
+	spatialLookup.ForEachPointWithinRadius(predictedPositions[particleIdx], [&](int otherParticleIdx) {
 		float dist=Vector2Distance(positions[otherParticleIdx],position);
 		float influence=viscositySmoothingKernel(dist);
 		force=Vector2Add(force,Vector2Scale(Vector2Subtract(velocities[otherParticleIdx], velocities[particleIdx]),influence));
-	}
+	});
 	return Vector2Scale(force,viscosityStrength);
 }
 

@@ -2,6 +2,7 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <functional>
 #include "raymath.h"
 #include "parallel.hpp"
 
@@ -20,7 +21,7 @@ class SpatialLookup {
 		std::vector<SpatialLookupEntry> spatialLookup;
 		std::vector<int> startIndices;
 		float radius;
-		std::vector<Vector2> points;
+		const std::vector<Vector2>* points;
 		std::vector<CellCoord> cellOffsets;
 
 		CellCoord positionToCellCoord(Vector2 position);
@@ -29,6 +30,6 @@ class SpatialLookup {
 	public:
 		SpatialLookup();
 		void Resize(int size);
-		void UpdateSpatialLookup(std::vector<Vector2> newPoints, float newRadius);
-		std::vector<int> GetPointsWithinRadius(Vector2 point);
+		void UpdateSpatialLookup(const std::vector<Vector2>& newPoints, float newRadius);
+		void ForEachPointWithinRadius(Vector2 point, const std::function<void(int)>& callback);
 };
