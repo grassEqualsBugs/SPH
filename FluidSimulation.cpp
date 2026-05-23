@@ -1,5 +1,5 @@
 #include "include/FluidSimulation.hpp"
-#include "include/raymath.h"
+#include "include/raylib/raymath.h"
 
 void FluidSimulation::initParticlesRandomly() {
 	Vector2 halfBoundsSize=Vector2SubtractValue(

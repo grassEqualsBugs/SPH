@@ -1,6 +1,6 @@
 #pragma once
-#include "raylib.h"
-#include "raymath.h"
+#include "raylib/raylib.h"
+#include "raylib/raymath.h"
 #include "parallel.hpp"
 #include "SpatialLookup.hpp"
 #include "hsvrgb.hpp"

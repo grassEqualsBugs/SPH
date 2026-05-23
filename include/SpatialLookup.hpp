@@ -3,7 +3,7 @@
 #include <iostream>
 #include <algorithm>
 #include <functional>
-#include "raymath.h"
+#include "raylib/raymath.h"
 #include "parallel.hpp"
 
 typedef struct SpatialLookupEntry {
